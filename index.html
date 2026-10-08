@@ -2,6 +2,12 @@
 <html lang="ko"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Noted</title><meta name="theme-color" content="#FBF8F2">
+<link rel="icon" type="image/png" href="noted.png">
+<link rel="apple-touch-icon" href="noted.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Noted">
+<link rel="manifest" id="mf">
+<script>(function(){var i=new URL('noted.png',location.href).href;document.getElementById('mf').href=URL.createObjectURL(new Blob([JSON.stringify({name:'Noted',short_name:'Noted',start_url:location.href.split('#')[0],display:'standalone',background_color:'#FBF8F2',theme_color:'#FBF8F2',icons:[{src:i,sizes:'192x192',type:'image/png',purpose:'any'},{src:i,sizes:'512x512',type:'image/png',purpose:'any'}]})],{type:'application/manifest+json'}))})()</script>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <style>
   :root{--bg:#FBF8F2;--bg-soft:#F5F0E6;--card:#FFFFFF;--ink:#2B2823;--ink-soft:#8C8577;--line:#E9E2D4;--accent:#B8763E;--radius:14px;}
@@ -86,6 +92,9 @@
   #moveOverlay{z-index:150}#moveOverlay .modal{max-width:340px}#moveSel{margin-bottom:4px}
   .card .meta .body{font-size:12.5px;color:var(--ink-soft);line-height:1.5;margin-top:4px;white-space:pre-wrap;word-break:break-word;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
   .card .meta .name{word-break:break-word}.lb-info h3{word-break:break-word}
+  .card .img-count{top:auto;bottom:8px;right:auto;left:8px}
+  .fav{position:absolute;top:8px;right:8px;z-index:3;width:28px;height:28px;border-radius:50%;border:0;background:rgba(255,255,255,.92);color:#C9C2B3;font-size:15px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.15);padding:0}.fav.on{color:#F2A900}
+  .card.noim .meta{padding-right:42px}.lb-btn-row{flex-wrap:wrap}
 </style></head><body>
 <header><div class="header-inner"><div class="header-actions"><div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input id="searchInput" placeholder="검색"></div><button class="btn-sel" id="selBtn">선택</button><button class="btn-add" id="openAdd"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>추가</span></button></div></div></header>
 <div class="cat-bar" id="catBar"></div>
@@ -99,7 +108,7 @@
 <div id="addError" class="error-note"></div>
 <div class="modal-actions"><button class="btn-cancel" id="cancelAdd">취소</button><button class="btn-save" id="saveAdd" disabled>저장</button></div></div></div>
 
-<div class="lightbox" id="lightbox"><button class="lb-close" id="lbClose">✕</button><div class="lb-inner" id="lbInner"><div class="lb-img-wrap"><img id="lbImg" src="" alt=""></div><div class="lb-info"><h3 id="lbTitle"></h3><div id="lbText"></div><div id="lbCats" class="lb-cats"></div><a class="lb-link-btn" id="lbLink" target="_blank" rel="noopener noreferrer">Open Link ↗</a><div class="lb-date" id="lbDate"></div><div class="lb-spacer"></div><div class="lb-btn-row"><button class="lb-edit" id="lbPin">고정</button><button class="lb-edit" id="lbEdit">수정하기</button><button class="lb-delete" id="lbDelete">삭제하기</button></div></div></div></div>
+<div class="lightbox" id="lightbox"><button class="lb-close" id="lbClose">✕</button><div class="lb-inner" id="lbInner"><div class="lb-img-wrap"><img id="lbImg" src="" alt=""></div><div class="lb-info"><h3 id="lbTitle"></h3><div id="lbText"></div><div id="lbCats" class="lb-cats"></div><a class="lb-link-btn" id="lbLink" target="_blank" rel="noopener noreferrer">Open Link ↗</a><div class="lb-date" id="lbDate"></div><div class="lb-spacer"></div><div class="lb-btn-row"><button class="lb-edit" id="lbFav">★ 즐겨찾기</button><button class="lb-edit" id="lbPin">고정</button><button class="lb-edit" id="lbEdit">수정하기</button><button class="lb-delete" id="lbDelete">삭제하기</button></div></div></div></div>
 
 <div id="selBar"><span id="selCnt">0개 선택</span><button id="selAll">전체</button><button id="selMove">이동</button><button id="selDel">삭제</button></div>
 <div class="overlay" id="moveOverlay"><div class="modal"><h2>카테고리 이동</h2><div class="tag-select" id="moveSel"></div><div class="modal-actions"><button class="btn-cancel" id="mvCancel">취소</button></div></div></div>
@@ -118,7 +127,7 @@ const dom=u=>{try{return new URL(u).hostname.replace('www.','')}catch(e){return 
 const cols=()=>innerWidth>1100?4:innerWidth>760?3:2;
 let notes=[],cats=[],active=null,selCat='',file=null,editId=null,lbId=null,prevUrl='',selMode=false,picked=new Set(),shown=[];
 
-col.orderBy('ts','desc').onSnapshot(s=>{notes=[];s.docs.forEach(d=>d.id=='_cats'?cats=d.data().list||[]:notes.push({id:d.id,...d.data()}));if(active&&!cats.includes(active))active=null;catBar();render();if(!$('overlay').classList.contains('open'))selCats()});
+col.orderBy('ts','desc').onSnapshot(s=>{notes=[];s.docs.forEach(d=>d.id=='_cats'?cats=d.data().list||[]:notes.push({id:d.id,...d.data()}));if(active&&active!=='★'&&!cats.includes(active))active=null;catBar();render();if(!$('overlay').classList.contains('open'))selCats()});
 function saveCats(l){cats=l;col.doc('_cats').set({list:l,ts:0});catBar();render();selCats()}
 let ncHook=null;function newCat(h){ncHook=h||null;$('ncInput').value='';$('ncErr').style.display='none';ncPrev();$('catOverlay').classList.add('open');setTimeout(()=>$('ncInput').focus(),60)}
 function ncPrev(){const v=$('ncInput').value.trim();$('ncPrev').innerHTML=v?`<span style="background:${colorOf(v)}20;color:${colorOf(v)}">${esc(v)}</span>`:'<em>이름을 입력하면 미리보기가 떠요</em>'}
@@ -129,29 +138,29 @@ $('ncSave').onclick=ncDone;$('ncCancel').onclick=closeNc;$('catOverlay').onclick
 ['gesturestart','gesturechange'].forEach(t=>document.addEventListener(t,e=>e.preventDefault()));
 
 function catBar(){
-  $('catBar').innerHTML=`<button class="cat-chip ${active?'':'active'}" data-i="">All</button>`+cats.map((c,i)=>`<button class="cat-chip ${c==active?'active':''}" data-i="${i}">${esc(c)}${c==active?`<i data-x="${i}">×</i>`:''}</button>`).join('')+'<button class="cat-chip new" data-new="1">＋ 카테고리</button>';
+  $('catBar').innerHTML=`<button class="cat-chip ${active?'':'active'}" data-i="">All</button><button class="cat-chip ${active=='★'?'active':''}" data-i="fav">★ 즐겨찾기</button>`+cats.map((c,i)=>`<button class="cat-chip ${c==active?'active':''}" data-i="${i}">${esc(c)}${c==active?`<i data-x="${i}">×</i>`:''}</button>`).join('')+'<button class="cat-chip new" data-new="1">＋ 카테고리</button>';
 }
 $('catBar').onclick=e=>{const d=e.target.dataset,b=e.target.closest('.cat-chip');if(!b)return;
   if(d.x!==undefined){const c=cats[d.x];if(confirm(`"${c}" 카테고리를 삭제할까요? (메모는 미분류로 이동)`)){notes.filter(n=>n.cat==c).forEach(n=>col.doc(n.id).update({cat:''}));active=null;saveCats(cats.filter(x=>x!=c))}return}
   if(b.dataset.new){newCat();return}
-  active=b.dataset.i===''?null:cats[b.dataset.i];catBar();render()};
+  active=b.dataset.i===''?null:b.dataset.i=='fav'?'★':cats[b.dataset.i];catBar();render()};
 
 const linkOf=n=>n.link!==undefined?n.link:(n.url||firstUrl(n.text||''));
 const bodyOf=n=>{let b=n.text||'';if(n.link===undefined){const u=n.url||firstUrl(b);if(u)b=b.split(u).join('').trim()}return b};
 function parts(n){let b=bodyOf(n),t=(n.title||'').trim();if(!t){const i=b.indexOf('\n');t=(i<0?b:b.slice(0,i)).trim();b=i<0?'':b.slice(i+1).trim()}if(!t)t=dom(linkOf(n))||'제목 없음';return{t,b}}
 function card(n){
-  const el=document.createElement('div');el.className='card';const im=n.img||n.thumb,u=linkOf(n),{t,b}=parts(n);
-  let h=im?`<div class="img-wrap"><img src="${esc(im)}" loading="lazy">${n.vid?'<i class="play">▶</i>':''}${n.pin?'<span class="img-count">📌</span>':''}</div>`:'';
+  const el=document.createElement('div');el.className='card'+(n.img||n.thumb?'':' noim');const im=n.img||n.thumb,u=linkOf(n),{t,b}=parts(n);
+  let h=`<button class="fav ${n.fav?'on':''}" title="즐겨찾기">★</button>`+(im?`<div class="img-wrap"><img src="${esc(im)}" loading="lazy">${n.vid?'<i class="play">▶</i>':''}${n.pin?'<span class="img-count">📌</span>':''}</div>`:'');
   h+=`<div class="meta"><div class="name">${esc(t)}</div>`;
   if(b)h+=`<div class="body">${esc(b)}</div>`;
   if(u)h+=`<div class="link-tag">🔗 ${esc(dom(u))}</div>`;
   if(n.cat||(!im&&n.pin))h+=`<div class="cats">${!im&&n.pin?'<span style="background:#eee">📌</span>':''}${n.cat?`<span style="background:${colorOf(n.cat)}20;color:${colorOf(n.cat)}">${esc(n.cat)}</span>`:''}</div>`;
-  el.innerHTML=h+'</div>';
+  el.innerHTML=h+'</div>';el.querySelector('.fav').onclick=e=>{e.stopPropagation();col.doc(n.id).update({fav:n.fav?0:1})};
   if(selMode){el.insertAdjacentHTML('afterbegin','<span class="chk"></span>');if(picked.has(n.id))el.classList.add('picked')}
   el.onclick=()=>{if(!selMode)return openLb(n);picked.has(n.id)?picked.delete(n.id):picked.add(n.id);el.classList.toggle('picked');updateBar()};return el}
 function render(){
   const q=$('searchInput').value.trim().toLowerCase();
-  const l=notes.filter(n=>(!active||n.cat==active)&&`${n.title||''} ${n.text||''} ${linkOf(n)}`.toLowerCase().includes(q)).sort((a,b)=>(b.pin||0)-(a.pin||0));
+  const l=notes.filter(n=>(!active||(active==='★'?n.fav:n.cat==active))&&`${n.title||''} ${n.text||''} ${linkOf(n)}`.toLowerCase().includes(q)).sort((a,b)=>(b.pin||0)-(a.pin||0));
   shown=l;const ids=new Set(l.map(n=>n.id));picked.forEach(id=>ids.has(id)||picked.delete(id));updateBar();
   const g=$('grid');g.innerHTML='';$('emptyState').style.display=l.length?'none':'block';
   const k=cols(),cs=[];for(let i=0;i<k;i++){const c=document.createElement('div');c.className='grid-col';cs.push(c);g.appendChild(c)}
@@ -172,7 +181,7 @@ function setFile(f){file=f;preview();ok()}
 function openAdd(n){
   editId=n?n.id:null;file=null;preview();$('fileInput').value='';
   $('mTitle').textContent=n?'메모 수정':'새 메모 추가';$('dropZone').style.display=n?'none':'';
-  $('titleInput').value=n?(n.title||''):'';$('textInput').value=n?bodyOf(n):'';$('linkInput').value=n?linkOf(n):'';selCat=n?(n.cat||''):(active||'');selCats();ok();
+  $('titleInput').value=n?(n.title||''):'';$('textInput').value=n?bodyOf(n):'';$('linkInput').value=n?linkOf(n):'';selCat=n?(n.cat||''):(active&&active!=='★'?active:'');selCats();ok();
   $('addError').style.display='none';$('overlay').classList.add('open');$('textInput').focus()}
 const closeAdd=()=>$('overlay').classList.remove('open');
 $('openAdd').onclick=()=>openAdd();$('cancelAdd').onclick=closeAdd;
@@ -190,8 +199,11 @@ async function thumb(text){
   const u=firstUrl(text);if(!u)return{};
   const y=u.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/))([\w-]{11})/);
   if(y)return{url:u,thumb:`https://img.youtube.com/vi/${y[1]}/hqdefault.jpg`,vid:1};
-  try{const j=await(await fetch('https://api.microlink.io?url='+encodeURIComponent(u))).json();const i=j.data&&j.data.image&&j.data.image.url;
-    if(i)return{url:u,thumb:i,vid:/vimeo|tiktok|instagram|twitch|dailymotion|tv\.naver|chzzk|x\.com|twitter/.test(u)?1:0}}catch(e){}
+  const x=u.match(/(?:twitter|x)\.com\/(\w+)\/status(?:es)?\/(\d+)/i);
+  if(x)try{const j=await(await fetch(`https://api.fxtwitter.com/${x[1]}/status/${x[2]}`)).json();const f=(((j.tweet||{}).media||{}).all||[])[0];
+    if(f){const t=f.type=='photo'?f.url:(f.thumbnail_url||f.url);if(t)return{url:u,thumb:t,vid:f.type=='photo'?0:1}}}catch(e){}
+  try{const j=await(await fetch('https://api.microlink.io?url='+encodeURIComponent(u))).json();const d=j.data||{},i=d.image&&d.image.url;
+    if(i)return{url:u,thumb:i,vid:(d.video||/vimeo|tiktok|twitch|dailymotion|tv\.naver|chzzk/.test(u))?1:0}}catch(e){}
   return{}}
 async function save(){
   const title=$('titleInput').value.trim(),text=$('textInput').value.trim(),b=$('saveAdd');let link=$('linkInput').value.trim();
@@ -221,10 +233,11 @@ function openLb(n){
   $('lbCats').innerHTML=n.cat?`<span style="background:${colorOf(n.cat)}">${esc(n.cat)}</span>`:'';
   $('lbLink').style.display=u?'inline-flex':'none';if(u)$('lbLink').href=u;
   $('lbDate').style.display=n.ts?'block':'none';if(n.ts)$('lbDate').textContent=new Date(n.ts).toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'});
-  $('lbPin').textContent=n.pin?'고정 해제':'고정';$('lightbox').classList.add('open')}
+  $('lbPin').textContent=n.pin?'고정 해제':'고정';$('lbFav').textContent=n.fav?'★ 즐겨찾기 해제':'★ 즐겨찾기';$('lightbox').classList.add('open')}
 const closeLb=()=>$('lightbox').classList.remove('open');
 $('lbClose').onclick=closeLb;$('lightbox').onclick=e=>{if(e.target.id=='lightbox')closeLb()};
 addEventListener('keydown',e=>{if(e.key=='Escape'){closeLb();closeNc();closeAdd();closeMv()}});
+$('lbFav').onclick=()=>{const n=notes.find(x=>x.id==lbId);col.doc(lbId).update({fav:n.fav?0:1});closeLb()};
 $('lbPin').onclick=()=>{const n=notes.find(x=>x.id==lbId);col.doc(lbId).update({pin:n.pin?0:1});closeLb()};
 $('lbEdit').onclick=()=>{const n=notes.find(x=>x.id==lbId);closeLb();openAdd(n)};
 $('lbDelete').onclick=()=>{if(confirm('삭제할까요?')){col.doc(lbId).delete();closeLb()}};
