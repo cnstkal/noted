@@ -111,7 +111,7 @@
 <div id="addError" class="error-note"></div>
 <div class="modal-actions"><button class="btn-cancel" id="cancelAdd">취소</button><button class="btn-save" id="saveAdd" disabled>저장</button></div></div></div>
 
-<div class="lightbox" id="lightbox"><button class="lb-close" id="lbClose">✕</button><div class="lb-inner" id="lbInner"><div class="lb-img-wrap"><img id="lbImg" src="" alt=""></div><div class="lb-info"><h3 id="lbTitle"></h3><div id="lbText"></div><div id="lbCats" class="lb-cats"></div><a class="lb-link-btn" id="lbLink" target="_blank" rel="noopener noreferrer">Open Link ↗</a><div class="lb-date" id="lbDate"></div><div class="lb-spacer"></div><div class="lb-btn-row"><button class="lb-edit" id="lbFav">★ 즐겨찾기</button><button class="lb-edit" id="lbPin">고정</button><button class="lb-edit" id="lbEdit">수정하기</button><button class="lb-delete" id="lbDelete">삭제하기</button></div></div></div></div>
+<div class="lightbox" id="lightbox"><button class="lb-close" id="lbClose">✕</button><div class="lb-inner" id="lbInner"><div class="lb-img-wrap"><img id="lbImg" src="" alt="" referrerpolicy="no-referrer"></div><div class="lb-info"><h3 id="lbTitle"></h3><div id="lbText"></div><div id="lbCats" class="lb-cats"></div><a class="lb-link-btn" id="lbLink" target="_blank" rel="noopener noreferrer">Open Link ↗</a><div class="lb-date" id="lbDate"></div><div class="lb-spacer"></div><div class="lb-btn-row"><button class="lb-edit" id="lbFav">★ 즐겨찾기</button><button class="lb-edit" id="lbPin">고정</button><button class="lb-edit" id="lbEdit">수정하기</button><button class="lb-delete" id="lbDelete">삭제하기</button></div></div></div></div>
 
 <div id="selBar"><span id="selCnt">0개 선택</span><button id="selAll">전체</button><button id="selMove">이동</button><button id="selDel">삭제</button></div>
 <div class="overlay" id="moveOverlay"><div class="modal"><h2>카테고리 이동</h2><div class="tag-select" id="moveSel"></div><div class="modal-actions"><button class="btn-cancel" id="mvCancel">취소</button></div></div></div>
@@ -159,7 +159,7 @@ const bodyOf=n=>{let b=n.text||'';if(n.link===undefined){const u=n.url||firstUrl
 function parts(n){let b=bodyOf(n),t=(n.title||'').trim();if(!t){const i=b.indexOf('\n');t=(i<0?b:b.slice(0,i)).trim();b=i<0?'':b.slice(i+1).trim()}if(!t)t=dom(linkOf(n))||'제목 없음';return{t,b}}
 function card(n){
   const el=document.createElement('div');el.className='card'+(n.img||n.thumb?'':' noim');const im=n.img||n.thumb,u=linkOf(n),{t,b}=parts(n);
-  let h=`<button class="fav ${n.fav?'on':''}" title="즐겨찾기">★</button>`+(im?`<div class="img-wrap"><img src="${esc(im)}" loading="lazy">${n.pin?'<span class="img-count">📌</span>':''}</div>`:(n.up&&Date.now()-n.ts<120000?'<div class="img-wrap"><div class="upl">이미지 올리는 중…</div></div>':''));
+  let h=`<button class="fav ${n.fav?'on':''}" title="즐겨찾기">★</button>`+(im?`<div class="img-wrap"><img src="${esc(im)}" loading="lazy" referrerpolicy="no-referrer">${n.pin?'<span class="img-count">📌</span>':''}</div>`:(n.up&&Date.now()-n.ts<120000?'<div class="img-wrap"><div class="upl">이미지 올리는 중…</div></div>':''));
   h+=`<div class="meta"><div class="name">${esc(t)}</div>`;
   if(b)h+=`<div class="body">${esc(b)}</div>`;
   if(u)h+=`<div class="link-tag">🔗 ${esc(dom(u))}</div>`;
@@ -220,6 +220,30 @@ async function thumb(text){
   const x=u.match(/(?:twitter|x)\.com\/(\w+)\/status(?:es)?\/(\d+)/i);
   if(x)try{const j=await(await fetch(`https://api.fxtwitter.com/${x[1]}/status/${x[2]}`)).json();const f=(((j.tweet||{}).media||{}).all||[])[0];
     if(f){const t=f.type=='photo'?f.url:(f.thumbnail_url||f.url);if(t)return{url:u,thumb:t,vid:f.type=='photo'?0:1}}}catch(e){}
+  const ig=u.match(/instagram\.com\/(?:[\w.]+\/)?(p|reels?|tv)\/([\w-]+)/i);
+  if(ig){
+    const code=ig[2],bad=s=>!s||/static\.cdninstagram\.com\/rsrc|instagram.*logo|\/rsrc\.php/i.test(s),
+      T=(x,ms)=>fetch(x,{signal:AbortSignal.timeout(ms||9000)}),
+      par=(h,sel,attr)=>{const e=new DOMParser().parseFromString(h,'text/html').querySelector(sel);return e?(e.getAttribute(attr)||''):''},
+      pick=ps=>new Promise(res=>{let n=ps.length;ps.forEach(p=>p.then(v=>v&&!bad(v)?res(v):--n||res(null),()=>--n||res(null)))}),
+      emb=`https://www.instagram.com/p/${code}/embed/captioned/`,
+      px=[x=>'https://api.allorigins.win/raw?url='+encodeURIComponent(x),x=>'https://corsproxy.io/?url='+encodeURIComponent(x)];
+    const found=await pick([
+      ...px.map(f=>T(f(emb)).then(r=>r.text()).then(h=>par(h,'img.EmbeddedMediaImage','src')||par(h,'meta[property="og:image"]','content'))),
+      ...px.map(f=>T(f(`https://www.ddinstagram.com/p/${code}/`)).then(r=>r.text()).then(h=>par(h,'meta[property="og:image"]','content'))),
+      T('https://api.microlink.io?url='+encodeURIComponent(u)).then(r=>r.json()).then(j=>(j.data&&j.data.image&&j.data.image.url)||'')
+    ]);
+    if(found){
+      let final=found;
+      // 인스타 CDN 주소는 만료되므로 Cloudinary에 복사해서 영구 보관
+      try{
+        const fd=new FormData();fd.append('file',found);fd.append('upload_preset',PRESET);
+        const j=await(await fetch(`https://api.cloudinary.com/v1_1/${CLOUD}/image/upload`,{method:'POST',body:fd,signal:AbortSignal.timeout(20000)})).json();
+        if(j.secure_url)final=j.secure_url.replace('/upload/','/upload/f_auto,q_auto,w_1000/')
+      }catch(e){}
+      return{url:u,thumb:final.replace(/^http:/,'https:'),vid:/\/(reels?|tv)\//i.test(u)?1:0}
+    }
+  }
   const tf=x=>fetch(x,{signal:AbortSignal.timeout(8000)}),vd=/vimeo|tiktok|twitch|dailymotion|tv\.naver|chzzk/.test(u),
     og=h=>{const m=new DOMParser().parseFromString(h,'text/html').querySelector('meta[property="og:image"],meta[property="og:image:url"],meta[name="twitter:image"]');return m&&m.content?{thumb:new URL(m.content,u).href,vid:vd?1:0}:null},
     html=p=>tf(p+encodeURIComponent(u)).then(r=>r.text()).then(og),
