@@ -77,7 +77,7 @@
   *{letter-spacing:-.02em}
   textarea.field{font-family:inherit;width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13.5px;line-height:1.6;color:var(--ink);outline:none;background:#fff;min-height:120px;resize:vertical}textarea.field:focus{border-color:var(--accent)}
   .card .name.txt{-webkit-line-clamp:7;white-space:pre-wrap;font-weight:500;font-size:14px;line-height:1.55}
-  .play{position:absolute;inset:0;margin:auto;width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;font-style:normal;display:flex;align-items:center;justify-content:center;font-size:14px}
+  .play{display:none!important;position:absolute;inset:0;margin:auto;width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;font-style:normal;display:flex;align-items:center;justify-content:center;font-size:14px}
   .cat-chip i{font-style:normal;opacity:.6;margin-left:6px}.cat-chip.new,.tag-select .tag.new{border-style:dashed}
   #lbText{font-size:15px;line-height:1.65;white-space:pre-wrap;word-break:break-word;margin:0 0 16px;font-weight:500}#lbText a{color:var(--accent)}
   .lb-inner.noimg{max-width:480px}.lb-inner.noimg .lb-img-wrap{display:none}
@@ -150,7 +150,7 @@ const bodyOf=n=>{let b=n.text||'';if(n.link===undefined){const u=n.url||firstUrl
 function parts(n){let b=bodyOf(n),t=(n.title||'').trim();if(!t){const i=b.indexOf('\n');t=(i<0?b:b.slice(0,i)).trim();b=i<0?'':b.slice(i+1).trim()}if(!t)t=dom(linkOf(n))||'제목 없음';return{t,b}}
 function card(n){
   const el=document.createElement('div');el.className='card'+(n.img||n.thumb?'':' noim');const im=n.img||n.thumb,u=linkOf(n),{t,b}=parts(n);
-  let h=`<button class="fav ${n.fav?'on':''}" title="즐겨찾기">★</button>`+(im?`<div class="img-wrap"><img src="${esc(im)}" loading="lazy">${n.vid?'<i class="play">▶</i>':''}${n.pin?'<span class="img-count">📌</span>':''}</div>`:'');
+  let h=`<button class="fav ${n.fav?'on':''}" title="즐겨찾기">★</button>`+(im?`<div class="img-wrap"><img src="${esc(im)}" loading="lazy">${n.pin?'<span class="img-count">📌</span>':''}</div>`:'');
   h+=`<div class="meta"><div class="name">${esc(t)}</div>`;
   if(b)h+=`<div class="body">${esc(b)}</div>`;
   if(u)h+=`<div class="link-tag">🔗 ${esc(dom(u))}</div>`;
