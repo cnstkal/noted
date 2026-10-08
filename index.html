@@ -222,27 +222,36 @@ async function thumb(text){
     if(f){const t=f.type=='photo'?f.url:(f.thumbnail_url||f.url);if(t)return{url:u,thumb:t,vid:f.type=='photo'?0:1}}}catch(e){}
   const ig=u.match(/instagram\.com\/(?:[\w.]+\/)?(p|reels?|tv)\/([\w-]+)/i);
   if(ig){
-    const code=ig[2],bad=s=>!s||/static\.cdninstagram\.com\/rsrc|instagram.*logo|\/rsrc\.php/i.test(s),
+    const code=ig[2],isV=/^(reels?|tv)$/i.test(ig[1]),
+      bad=x=>!x||/static\.cdninstagram\.com\/rsrc|logo|\/rsrc\.php|\/images\/ig\//i.test(x),
       T=(x,ms)=>fetch(x,{signal:AbortSignal.timeout(ms||9000)}),
-      par=(h,sel,attr)=>{const e=new DOMParser().parseFromString(h,'text/html').querySelector(sel);return e?(e.getAttribute(attr)||''):''},
+      un=x=>x.replace(/\\u0026/g,'&').replace(/\\\//g,'/').replace(/&amp;/g,'&'),
+      scrape=h=>{const d=new DOMParser().parseFromString(h,'text/html'),e=d.querySelector('img.EmbeddedMediaImage'),m=d.querySelector('meta[property="og:image"]');
+        const r=(e&&e.getAttribute('src'))||(m&&m.content)||((h.match(/https:(?:\\?\/){2}[^"'\s)<>]*(?:cdninstagram\.com|fbcdn\.net)[^"'\s)<>]*/)||[''])[0]);return r?un(r):''},
+      px=[x=>'https://api.allorigins.win/raw?url='+encodeURIComponent(x),x=>'https://corsproxy.io/?url='+encodeURIComponent(x),x=>'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(x)],
+      loads=x=>new Promise(res=>{const i=new Image();i.referrerPolicy='no-referrer';i.onload=()=>res(i.naturalWidth>50?x:null);i.onerror=()=>res(null);setTimeout(()=>res(null),9000);i.src=x}),
       pick=ps=>new Promise(res=>{let n=ps.length;ps.forEach(p=>p.then(v=>v&&!bad(v)?res(v):--n||res(null),()=>--n||res(null)))}),
-      emb=`https://www.instagram.com/p/${code}/embed/captioned/`,
-      px=[x=>'https://api.allorigins.win/raw?url='+encodeURIComponent(x),x=>'https://corsproxy.io/?url='+encodeURIComponent(x)];
+      emb=`https://www.instagram.com/p/${code}/embed/captioned/`,pg=`https://www.instagram.com/${isV?'reel':'p'}/${code}/`;
     const found=await pick([
-      ...px.map(f=>T(f(emb)).then(r=>r.text()).then(h=>par(h,'img.EmbeddedMediaImage','src')||par(h,'meta[property="og:image"]','content'))),
-      ...px.map(f=>T(f(`https://www.ddinstagram.com/p/${code}/`)).then(r=>r.text()).then(h=>par(h,'meta[property="og:image"]','content'))),
-      T('https://api.microlink.io?url='+encodeURIComponent(u)).then(r=>r.json()).then(j=>(j.data&&j.data.image&&j.data.image.url)||'')
+      ...px.map(f=>T(f(emb)).then(r=>r.text()).then(scrape)),
+      ...px.map(f=>T(f(pg)).then(r=>r.text()).then(scrape)),
+      T('https://r.jina.ai/'+pg,12000).then(r=>r.text()).then(h=>{const m=h.match(/https:\/\/[^\s)"']*(?:cdninstagram\.com|fbcdn\.net)[^\s)"']*/);return m?un(m[0]):''}),
+      T('https://api.microlink.io?url='+encodeURIComponent(pg)).then(r=>r.json()).then(j=>(j.data&&j.data.image&&j.data.image.url)||''),
+      loads(`https://www.instagram.com/p/${code}/media/?size=l`),
+      loads(`https://ddinstagram.com/images/${code}/1`),
+      loads(`https://d.ddinstagram.com/images/${code}/1`)
     ]);
+    let final=found;
     if(found){
-      let final=found;
-      // 인스타 CDN 주소는 만료되므로 Cloudinary에 복사해서 영구 보관
       try{
         const fd=new FormData();fd.append('file',found);fd.append('upload_preset',PRESET);
         const j=await(await fetch(`https://api.cloudinary.com/v1_1/${CLOUD}/image/upload`,{method:'POST',body:fd,signal:AbortSignal.timeout(20000)})).json();
         if(j.secure_url)final=j.secure_url.replace('/upload/','/upload/f_auto,q_auto,w_1000/')
       }catch(e){}
-      return{url:u,thumb:final.replace(/^http:/,'https:'),vid:/\/(reels?|tv)\//i.test(u)?1:0}
-    }
+    }else{
+      console.warn('[인스타 썸네일] 모든 소스 실패 → 기본 이미지 사용');
+      final='data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><defs><linearGradient id="g" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#feda75"/><stop offset=".35" stop-color="#fa7e1e"/><stop offset=".6" stop-color="#d62976"/><stop offset="1" stop-color="#4f5bd5"/></linearGradient></defs><rect width="400" height="400" fill="url(#g)"/><rect x="120" y="120" width="160" height="160" rx="44" fill="none" stroke="#fff" stroke-width="14"/><circle cx="200" cy="200" r="38" fill="none" stroke="#fff" stroke-width="14"/><circle cx="251" cy="149" r="9" fill="#fff"/></svg>')}
+    return{url:u,thumb:final.replace(/^http:/,'https:'),vid:isV?1:0}
   }
   const tf=x=>fetch(x,{signal:AbortSignal.timeout(8000)}),vd=/vimeo|tiktok|twitch|dailymotion|tv\.naver|chzzk/.test(u),
     og=h=>{const m=new DOMParser().parseFromString(h,'text/html').querySelector('meta[property="og:image"],meta[property="og:image:url"],meta[name="twitter:image"]');return m&&m.content?{thumb:new URL(m.content,u).href,vid:vd?1:0}:null},
@@ -273,7 +282,7 @@ async function save(){
     if(!link){d.thumb='';d.vid=0}
     col.doc(id).update(d).catch(e=>alert('저장 실패: '+e.message));
     if(f){try{await col.doc(id).update({img:await upload(f),up:0})}catch(e){col.doc(id).update({up:0});alert('이미지 업로드 실패: '+e.message)}}
-    else if(link&&!keep&&(link!==linkOf(old)||!old.thumb)){const th=await thumb(link);col.doc(id).update({thumb:th.thumb||'',vid:th.vid||0})}
+    else if(link&&!keep&&(link!==linkOf(old)||!old.thumb||/^data:/.test(old.thumb))){const th=await thumb(link);col.doc(id).update({thumb:th.thumb||'',vid:th.vid||0})}
     return}
   const ref=col.doc();
   ref.set({title,text,link,img:'',cat,pin:0,ts:Date.now(),up:f?1:0}).catch(e=>alert('저장 실패: '+e.message));
