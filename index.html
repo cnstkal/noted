@@ -75,6 +75,9 @@
   .cat-chip i{font-style:normal;opacity:.6;margin-left:6px}.cat-chip.new,.tag-select .tag.new{border-style:dashed}
   #lbText{font-size:15px;line-height:1.65;white-space:pre-wrap;word-break:break-word;margin:0 0 16px;font-weight:500}#lbText a{color:var(--accent)}
   .lb-inner.noimg{max-width:480px}.lb-inner.noimg .lb-img-wrap{display:none}
+  @media (pointer:coarse){input,textarea,select{font-size:16px!important}}
+  #catOverlay{z-index:150}#catOverlay .modal{max-width:340px}
+  .nc-prev{margin-top:14px;min-height:26px}.nc-prev span{font-size:12px;font-weight:700;padding:4px 11px;border-radius:999px}.nc-prev em{font-style:normal;font-size:12px;color:var(--ink-soft)}
 </style></head><body>
 <header><div class="header-inner"><div class="header-actions"><div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input id="searchInput" placeholder="검색"></div><button class="btn-add" id="openAdd"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>추가</span></button></div></div></header>
 <div class="cat-bar" id="catBar"></div>
@@ -90,6 +93,7 @@
 
 <div class="lightbox" id="lightbox"><button class="lb-close" id="lbClose">✕</button><div class="lb-inner" id="lbInner"><div class="lb-img-wrap"><img id="lbImg" src="" alt=""></div><div class="lb-info"><div id="lbText"></div><div id="lbCats" class="lb-cats"></div><a class="lb-link-btn" id="lbLink" target="_blank" rel="noopener noreferrer">Open Link ↗</a><div class="lb-date" id="lbDate"></div><div class="lb-spacer"></div><div class="lb-btn-row"><button class="lb-edit" id="lbPin">고정</button><button class="lb-edit" id="lbEdit">수정하기</button><button class="lb-delete" id="lbDelete">삭제하기</button></div></div></div></div>
 
+<div class="overlay" id="catOverlay"><div class="modal"><h2>새 카테고리</h2><input class="field" id="ncInput" placeholder="예: 맛집, 레퍼런스, 아이디어" maxlength="20" autocomplete="off"><div class="nc-prev" id="ncPrev"></div><div id="ncErr" class="error-note"></div><div class="modal-actions"><button class="btn-cancel" id="ncCancel">취소</button><button class="btn-save" id="ncSave">만들기</button></div></div></div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
@@ -106,7 +110,13 @@ let notes=[],cats=[],active=null,selCat='',file=null,editId=null,lbId=null,prevU
 
 col.orderBy('ts','desc').onSnapshot(s=>{notes=[];s.docs.forEach(d=>d.id=='_cats'?cats=d.data().list||[]:notes.push({id:d.id,...d.data()}));if(active&&!cats.includes(active))active=null;catBar();render();if(!$('overlay').classList.contains('open'))selCats()});
 function saveCats(l){cats=l;col.doc('_cats').set({list:l,ts:0});catBar();render();selCats()}
-function newCat(){const n=(prompt('새 카테고리 이름')||'').trim();if(n&&!cats.includes(n)){selCat=n;saveCats([...cats,n])}}
+function newCat(){$('ncInput').value='';$('ncErr').style.display='none';ncPrev();$('catOverlay').classList.add('open');setTimeout(()=>$('ncInput').focus(),60)}
+function ncPrev(){const v=$('ncInput').value.trim();$('ncPrev').innerHTML=v?`<span style="background:${colorOf(v)}20;color:${colorOf(v)}">${esc(v)}</span>`:'<em>이름을 입력하면 미리보기가 떠요</em>'}
+const closeNc=()=>$('catOverlay').classList.remove('open');
+function ncDone(){const n=$('ncInput').value.trim();if(!n)return;if(cats.includes(n)){$('ncErr').textContent='이미 있는 카테고리예요.';$('ncErr').style.display='block';return}selCat=n;closeNc();saveCats([...cats,n])}
+$('ncInput').oninput=ncPrev;$('ncInput').onkeydown=e=>{if(e.key=='Enter'&&!e.isComposing)ncDone()};
+$('ncSave').onclick=ncDone;$('ncCancel').onclick=closeNc;$('catOverlay').onclick=e=>{if(e.target.id=='catOverlay')closeNc()};
+['gesturestart','gesturechange'].forEach(t=>document.addEventListener(t,e=>e.preventDefault()));
 
 function catBar(){
   $('catBar').innerHTML=`<button class="cat-chip ${active?'':'active'}" data-i="">All</button>`+cats.map((c,i)=>`<button class="cat-chip ${c==active?'active':''}" data-i="${i}">${esc(c)}${c==active?`<i data-x="${i}">×</i>`:''}</button>`).join('')+'<button class="cat-chip new" data-new="1">＋ 카테고리</button>';
@@ -193,7 +203,7 @@ function openLb(n){
   $('lbPin').textContent=n.pin?'고정 해제':'고정';$('lightbox').classList.add('open')}
 const closeLb=()=>$('lightbox').classList.remove('open');
 $('lbClose').onclick=closeLb;$('lightbox').onclick=e=>{if(e.target.id=='lightbox')closeLb()};
-addEventListener('keydown',e=>{if(e.key=='Escape'){closeLb();closeAdd()}});
+addEventListener('keydown',e=>{if(e.key=='Escape'){closeLb();closeNc();closeAdd()}});
 $('lbPin').onclick=()=>{const n=notes.find(x=>x.id==lbId);col.doc(lbId).update({pin:n.pin?0:1});closeLb()};
 $('lbEdit').onclick=()=>{const n=notes.find(x=>x.id==lbId);closeLb();openAdd(n)};
 $('lbDelete').onclick=()=>{if(confirm('삭제할까요?')){col.doc(lbId).delete();closeLb()}};
