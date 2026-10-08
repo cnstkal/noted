@@ -97,13 +97,14 @@
   .card.noim .meta{padding-right:42px}.lb-btn-row{flex-wrap:wrap}
   .cat-chip i{padding:0 2px}
   .upl{aspect-ratio:4/3;background:var(--bg-soft);display:flex;align-items:center;justify-content:center;color:var(--ink-soft);font-size:12px}
+  #previewGrid{grid-template-columns:1fr}#previewGrid .preview-item{aspect-ratio:16/10}#previewGrid .remove{width:28px;height:28px;font-size:14px;top:8px;right:8px;background:rgba(0,0,0,.65)}
 </style></head><body>
 <header><div class="header-inner"><div class="header-actions"><div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input id="searchInput" placeholder="검색"></div><button class="btn-sel" id="selBtn">선택</button><button class="btn-add" id="openAdd"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>추가</span></button></div></div></header>
 <div class="cat-bar" id="catBar"></div>
 <main><div class="grid" id="grid"></div><div class="empty" id="emptyState" style="display:none"><div class="big">아직 저장한 메모가 없어요</div><div class="small">우측 상단 '추가' 버튼으로 시작해보세요</div></div></main>
 
 <div class="overlay" id="overlay"><div class="modal"><h2 id="mTitle">새 메모 추가</h2>
-<div class="drop" id="dropZone"><input type="file" id="fileInput" accept="image/*"><div class="drop-text"><b>클릭</b>, 끌어다 놓기, 또는 <b>붙여넣기</b>로 이미지 추가</div></div>
+<div class="drop" id="dropZone"><input type="file" id="fileInput" accept="image/*"><div class="drop-text"><b>클릭</b> · 끌어다 놓기 · <b>붙여넣기</b>로 이미지 추가/교체</div></div>
 <div class="preview-grid" id="previewGrid"></div>
 <label class="field-label">제목 (선택)</label><input class="field" id="titleInput" placeholder="비워두면 내용 첫 줄이 제목이 돼요" autocomplete="off"><label class="field-label">내용</label><textarea class="field" id="textInput" placeholder="무엇이든 적어두세요"></textarea><label class="field-label">링크 (선택)</label><input class="field" id="linkInput" placeholder="https://... 영상 링크면 썸네일이 떠요" autocomplete="off" inputmode="url">
 <label class="field-label">Category</label><div class="tag-select" id="catSelect"></div>
@@ -127,7 +128,7 @@ const esc=s=>(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"
 const firstUrl=t=>(t.match(/https?:\/\/[^\s]+/)||[''])[0];
 const dom=u=>{try{return new URL(u).hostname.replace('www.','')}catch(e){return u}};
 const cols=()=>innerWidth>1100?4:innerWidth>760?3:2;
-let notes=[],cats=[],active=null,selCat='',file=null,editId=null,lbId=null,prevUrl='',selMode=false,picked=new Set(),shown=[];
+let notes=[],cats=[],active=null,selCat='',file=null,editId=null,lbId=null,prevUrl='',selMode=false,picked=new Set(),shown=[],curImg='';
 
 col.orderBy('ts','desc').onSnapshot(s=>{notes=[];s.docs.forEach(d=>d.id=='_cats'?cats=d.data().list||[]:notes.push({id:d.id,...d.data()}));if(active&&active!=='★'&&!cats.includes(active))active=null;catBar();render();if(!$('overlay').classList.contains('open'))selCats()});
 function saveCats(l){cats=l;col.doc('_cats').set({list:l,ts:0});catBar();render();selCats()}
@@ -182,13 +183,14 @@ function selCats(){
 $('catSelect').onclick=e=>{const b=e.target.closest('.tag');if(!b)return;if(b.dataset.new){newCat();return}selCat=selCat==b.dataset.c?'':b.dataset.c;selCats()};
 function preview(){
   if(prevUrl)URL.revokeObjectURL(prevUrl);prevUrl=file?URL.createObjectURL(file):'';
-  $('previewGrid').innerHTML=file?`<div class="preview-item"><img src="${prevUrl}"><button class="remove" id="rmF">✕</button></div>`:'';
-  if(file)$('rmF').onclick=()=>setFile(null)}
-const ok=()=>{$('saveAdd').disabled=!($('titleInput').value.trim()||$('textInput').value.trim()||$('linkInput').value.trim()||file)};
+  const src=prevUrl||curImg;
+  $('previewGrid').innerHTML=src?`<div class="preview-item"><img src="${esc(src)}"><button class="remove" id="rmF" type="button" title="이미지 삭제">✕</button></div>`:'';
+  if(src)$('rmF').onclick=()=>{file=null;curImg='';$('fileInput').value='';preview();ok()}}
+const ok=()=>{$('saveAdd').disabled=!($('titleInput').value.trim()||$('textInput').value.trim()||$('linkInput').value.trim()||file||curImg)};
 function setFile(f){file=f;preview();ok()}
 function openAdd(n){
-  editId=n?n.id:null;file=null;preview();$('fileInput').value='';
-  $('mTitle').textContent=n?'메모 수정':'새 메모 추가';$('dropZone').style.display=n?'none':'';
+  editId=n?n.id:null;file=null;curImg=n?(n.img||''):'';preview();$('fileInput').value='';
+  $('mTitle').textContent=n?'메모 수정':'새 메모 추가';$('dropZone').style.display='';
   $('titleInput').value=n?(n.title||''):'';$('textInput').value=n?bodyOf(n):'';$('linkInput').value=n?linkOf(n):'';selCat=n?(n.cat||''):(active&&active!=='★'?active:'');selCats();ok();
   $('addError').style.display='none';$('overlay').classList.add('open');$('textInput').focus()}
 const closeAdd=()=>$('overlay').classList.remove('open');
@@ -200,13 +202,15 @@ $('dropZone').onclick=()=>$('fileInput').click();
 $('fileInput').onchange=e=>e.target.files[0]&&setFile(e.target.files[0]);
 $('dropZone').ondragover=e=>{e.preventDefault();$('dropZone').classList.add('drag')};
 $('dropZone').ondragleave=()=>$('dropZone').classList.remove('drag');
-$('dropZone').ondrop=e=>{e.preventDefault();$('dropZone').classList.remove('drag');const f=[...e.dataTransfer.files].find(x=>x.type.startsWith('image/'));f&&setFile(f)};
+$('dropZone').ondrop=()=>$('dropZone').classList.remove('drag');
+addEventListener('dragover',e=>e.preventDefault());
+addEventListener('drop',e=>{e.preventDefault();const f=[...e.dataTransfer.files].find(x=>x.type.startsWith('image/'));if(!f)return;if(!$('overlay').classList.contains('open'))openAdd();setFile(f)});
 document.addEventListener('paste',e=>{
   const cd=e.clipboardData;if(!cd||$('lightbox').classList.contains('open')||$('catOverlay').classList.contains('open')||$('moveOverlay').classList.contains('open'))return;
   let f=[...cd.files].find(x=>x.type.startsWith('image/'));
   if(!f){const it=[...cd.items].find(x=>x.kind=='file'&&x.type.startsWith('image/'));f=it&&it.getAsFile()}
   if(!f)return;
-  const open=$('overlay').classList.contains('open');if(open&&editId)return;
+  const open=$('overlay').classList.contains('open');
   e.preventDefault();if(!open)openAdd();setFile(f)});
 
 async function thumb(text){
@@ -234,12 +238,15 @@ async function upload(f){
   if(!j.secure_url)throw new Error(j.error&&j.error.message);
   return j.secure_url.replace('/upload/','/upload/f_auto,q_auto,w_1000/')}
 async function save(){
-  const title=$('titleInput').value.trim(),text=$('textInput').value.trim(),cat=selCat,f=file,id=editId;let link=$('linkInput').value.trim();
+  const title=$('titleInput').value.trim(),text=$('textInput').value.trim(),cat=selCat,f=file,id=editId,keep=curImg;let link=$('linkInput').value.trim();
   if(link&&!/^https?:\/\//i.test(link))link='https://'+link;
   closeAdd();
-  if(id){const old=notes.find(x=>x.id==id);
-    col.doc(id).update({title,text,link,cat}).catch(e=>alert('저장 실패: '+e.message));
-    if(link!==linkOf(old)&&!old.img)thumb(link).then(th=>col.doc(id).update({thumb:th.thumb||'',vid:th.vid||0}));
+  if(id){const old=notes.find(x=>x.id==id),d={title,text,link,cat};
+    if(f)d.up=1;else d.img=keep;
+    if(!link){d.thumb='';d.vid=0}
+    col.doc(id).update(d).catch(e=>alert('저장 실패: '+e.message));
+    if(f){try{await col.doc(id).update({img:await upload(f),up:0})}catch(e){col.doc(id).update({up:0});alert('이미지 업로드 실패: '+e.message)}}
+    else if(link&&!keep&&(link!==linkOf(old)||!old.thumb)){const th=await thumb(link);col.doc(id).update({thumb:th.thumb||'',vid:th.vid||0})}
     return}
   const ref=col.doc();
   ref.set({title,text,link,img:'',cat,pin:0,ts:Date.now(),up:f?1:0}).catch(e=>alert('저장 실패: '+e.message));
