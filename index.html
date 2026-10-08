@@ -220,13 +220,16 @@ async function thumb(text){
   const x=u.match(/(?:twitter|x)\.com\/(\w+)\/status(?:es)?\/(\d+)/i);
   if(x)try{const j=await(await fetch(`https://api.fxtwitter.com/${x[1]}/status/${x[2]}`)).json();const f=(((j.tweet||{}).media||{}).all||[])[0];
     if(f){const t=f.type=='photo'?f.url:(f.thumbnail_url||f.url);if(t)return{url:u,thumb:t,vid:f.type=='photo'?0:1}}}catch(e){}
-  const tf=x=>fetch(x,{signal:AbortSignal.timeout(7000)}),vd=/vimeo|tiktok|twitch|dailymotion|tv\.naver|chzzk/.test(u);
-  try{const d=(await(await tf('https://api.microlink.io?url='+encodeURIComponent(u))).json()).data||{};
-    if(d.image&&d.image.url)return{url:u,thumb:d.image.url,vid:(d.video||vd)?1:0}}catch(e){}
-  try{const h=await(await tf('https://api.allorigins.win/raw?url='+encodeURIComponent(u))).text();
-    const m=new DOMParser().parseFromString(h,'text/html').querySelector('meta[property="og:image"],meta[property="og:image:url"],meta[name="twitter:image"]');
-    if(m&&m.content)return{url:u,thumb:new URL(m.content,u).href,vid:vd?1:0}}catch(e){}
-  return{url:u,thumb:'https://image.thum.io/get/width/700/crop/700/'+u,vid:0}}
+  const tf=x=>fetch(x,{signal:AbortSignal.timeout(8000)}),vd=/vimeo|tiktok|twitch|dailymotion|tv\.naver|chzzk/.test(u),
+    og=h=>{const m=new DOMParser().parseFromString(h,'text/html').querySelector('meta[property="og:image"],meta[property="og:image:url"],meta[name="twitter:image"]');return m&&m.content?{thumb:new URL(m.content,u).href,vid:vd?1:0}:null},
+    html=p=>tf(p+encodeURIComponent(u)).then(r=>r.text()).then(og),
+    any=ps=>new Promise(res=>{let n=ps.length;ps.forEach(p=>p.then(v=>v?res(v):--n||res(null),()=>--n||res(null)))});
+  const r=await any([
+    tf('https://api.microlink.io?url='+encodeURIComponent(u)).then(r=>r.json()).then(j=>{const d=j.data||{};return d.image&&d.image.url?{thumb:d.image.url,vid:(d.video||vd)?1:0}:null}),
+    tf('https://api.dub.co/metatags?url='+encodeURIComponent(u)).then(r=>r.json()).then(j=>j.image?{thumb:j.image,vid:vd?1:0}:null),
+    html('https://api.allorigins.win/raw?url='),
+    html('https://corsproxy.io/?url=')]);
+  return{url:u,thumb:(r?r.thumb:'https://image.thum.io/get/width/700/crop/700/'+u).replace(/^http:/,'https:'),vid:r?r.vid:0}}
 async function shrink(f){
   if(!/^image\/(jpe?g|png|webp)/i.test(f.type)||f.size<400000)return f;
   try{const b=await createImageBitmap(f),r=Math.min(1,1600/Math.max(b.width,b.height)),c=document.createElement('canvas');
