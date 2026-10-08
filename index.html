@@ -95,6 +95,7 @@
   .card .img-count{top:auto;bottom:8px;right:auto;left:8px}
   .fav{position:absolute;top:8px;right:8px;z-index:3;width:28px;height:28px;border-radius:50%;border:0;background:rgba(255,255,255,.92);color:#C9C2B3;font-size:15px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.15);padding:0}.fav.on{color:#F2A900}
   .card.noim .meta{padding-right:42px}.lb-btn-row{flex-wrap:wrap}
+  .cat-chip i{padding:0 2px}
 </style></head><body>
 <header><div class="header-inner"><div class="header-actions"><div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input id="searchInput" placeholder="검색"></div><button class="btn-sel" id="selBtn">선택</button><button class="btn-add" id="openAdd"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>추가</span></button></div></div></header>
 <div class="cat-bar" id="catBar"></div>
@@ -112,7 +113,7 @@
 
 <div id="selBar"><span id="selCnt">0개 선택</span><button id="selAll">전체</button><button id="selMove">이동</button><button id="selDel">삭제</button></div>
 <div class="overlay" id="moveOverlay"><div class="modal"><h2>카테고리 이동</h2><div class="tag-select" id="moveSel"></div><div class="modal-actions"><button class="btn-cancel" id="mvCancel">취소</button></div></div></div>
-<div class="overlay" id="catOverlay"><div class="modal"><h2>새 카테고리</h2><input class="field" id="ncInput" placeholder="예: 맛집, 레퍼런스, 아이디어" maxlength="20" autocomplete="off"><div class="nc-prev" id="ncPrev"></div><div id="ncErr" class="error-note"></div><div class="modal-actions"><button class="btn-cancel" id="ncCancel">취소</button><button class="btn-save" id="ncSave">만들기</button></div></div></div>
+<div class="overlay" id="catOverlay"><div class="modal"><h2 id="ncTitle">새 카테고리</h2><input class="field" id="ncInput" placeholder="예: 맛집, 레퍼런스, 아이디어" maxlength="20" autocomplete="off"><div class="nc-prev" id="ncPrev"></div><div id="ncErr" class="error-note"></div><div class="modal-actions"><button class="btn-cancel" id="ncCancel">취소</button><button class="btn-save" id="ncSave">만들기</button></div></div></div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
@@ -129,18 +130,24 @@ let notes=[],cats=[],active=null,selCat='',file=null,editId=null,lbId=null,prevU
 
 col.orderBy('ts','desc').onSnapshot(s=>{notes=[];s.docs.forEach(d=>d.id=='_cats'?cats=d.data().list||[]:notes.push({id:d.id,...d.data()}));if(active&&active!=='★'&&!cats.includes(active))active=null;catBar();render();if(!$('overlay').classList.contains('open'))selCats()});
 function saveCats(l){cats=l;col.doc('_cats').set({list:l,ts:0});catBar();render();selCats()}
-let ncHook=null;function newCat(h){ncHook=h||null;$('ncInput').value='';$('ncErr').style.display='none';ncPrev();$('catOverlay').classList.add('open');setTimeout(()=>$('ncInput').focus(),60)}
+let ncHook=null,ncEdit=null;function renameCat(i){newCat();ncEdit=+i;$('ncTitle').textContent='카테고리 이름 변경';$('ncSave').textContent='변경';$('ncInput').value=cats[i];ncPrev()}
+function newCat(h){ncHook=h||null;ncEdit=null;$('ncTitle').textContent='새 카테고리';$('ncSave').textContent='만들기';$('ncInput').value='';$('ncErr').style.display='none';ncPrev();$('catOverlay').classList.add('open');setTimeout(()=>$('ncInput').focus(),60)}
 function ncPrev(){const v=$('ncInput').value.trim();$('ncPrev').innerHTML=v?`<span style="background:${colorOf(v)}20;color:${colorOf(v)}">${esc(v)}</span>`:'<em>이름을 입력하면 미리보기가 떠요</em>'}
 const closeNc=()=>{$('catOverlay').classList.remove('open');ncHook=null};
-function ncDone(){const n=$('ncInput').value.trim();if(!n)return;if(cats.includes(n)){$('ncErr').textContent='이미 있는 카테고리예요.';$('ncErr').style.display='block';return}const h=ncHook;selCat=n;closeNc();saveCats([...cats,n]);if(h)h(n)}
+function ncDone(){const n=$('ncInput').value.trim();if(!n)return;
+  if(ncEdit!==null){const old=cats[ncEdit];if(n==old){closeNc();return}
+    if(cats.includes(n)){$('ncErr').textContent='이미 있는 카테고리예요.';$('ncErr').style.display='block';return}
+    const b=col.firestore.batch();notes.filter(x=>x.cat==old).forEach(x=>b.update(col.doc(x.id),{cat:n}));b.commit();
+    const l=[...cats];l[ncEdit]=n;if(active==old)active=n;closeNc();saveCats(l);return}if(cats.includes(n)){$('ncErr').textContent='이미 있는 카테고리예요.';$('ncErr').style.display='block';return}const h=ncHook;selCat=n;closeNc();saveCats([...cats,n]);if(h)h(n)}
 $('ncInput').oninput=ncPrev;$('ncInput').onkeydown=e=>{if(e.key=='Enter'&&!e.isComposing)ncDone()};
 $('ncSave').onclick=ncDone;$('ncCancel').onclick=closeNc;$('catOverlay').onclick=e=>{if(e.target.id=='catOverlay')closeNc()};
 ['gesturestart','gesturechange'].forEach(t=>document.addEventListener(t,e=>e.preventDefault()));
 
 function catBar(){
-  $('catBar').innerHTML=`<button class="cat-chip ${active?'':'active'}" data-i="">All</button><button class="cat-chip ${active=='★'?'active':''}" data-i="fav">★ 즐겨찾기</button>`+cats.map((c,i)=>`<button class="cat-chip ${c==active?'active':''}" data-i="${i}">${esc(c)}${c==active?`<i data-x="${i}">×</i>`:''}</button>`).join('')+'<button class="cat-chip new" data-new="1">＋ 카테고리</button>';
+  $('catBar').innerHTML=`<button class="cat-chip ${active?'':'active'}" data-i="">All</button><button class="cat-chip ${active=='★'?'active':''}" data-i="fav">★ 즐겨찾기</button>`+cats.map((c,i)=>`<button class="cat-chip ${c==active?'active':''}" data-i="${i}">${esc(c)}${c==active?`<i data-e="${i}">✎</i><i data-x="${i}">×</i>`:''}</button>`).join('')+'<button class="cat-chip new" data-new="1">＋ 카테고리</button>';
 }
 $('catBar').onclick=e=>{const d=e.target.dataset,b=e.target.closest('.cat-chip');if(!b)return;
+  if(d.e!==undefined){renameCat(d.e);return}
   if(d.x!==undefined){const c=cats[d.x];if(confirm(`"${c}" 카테고리를 삭제할까요? (메모는 미분류로 이동)`)){notes.filter(n=>n.cat==c).forEach(n=>col.doc(n.id).update({cat:''}));active=null;saveCats(cats.filter(x=>x!=c))}return}
   if(b.dataset.new){newCat();return}
   active=b.dataset.i===''?null:b.dataset.i=='fav'?'★':cats[b.dataset.i];catBar();render()};
