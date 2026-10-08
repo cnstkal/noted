@@ -78,21 +78,31 @@
   @media (pointer:coarse){input,textarea,select{font-size:16px!important}}
   #catOverlay{z-index:150}#catOverlay .modal{max-width:340px}
   .nc-prev{margin-top:14px;min-height:26px}.nc-prev span{font-size:12px;font-weight:700;padding:4px 11px;border-radius:999px}.nc-prev em{font-style:normal;font-size:12px;color:var(--ink-soft)}
+  .btn-sel{font-family:inherit;background:var(--bg-soft);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:10px 16px;font-size:13.5px;font-weight:600;cursor:pointer;flex-shrink:0;white-space:nowrap}
+  .chk{position:absolute;top:8px;left:8px;width:22px;height:22px;border-radius:50%;border:2px solid #fff;background:rgba(0,0,0,.25);z-index:3;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700}
+  .card.picked{border-color:var(--ink);box-shadow:0 0 0 2px var(--ink)}.card.picked .chk{background:var(--ink)}.card.picked .chk::after{content:'✓'}
+  #selBar{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;border-radius:999px;padding:7px 8px 7px 18px;display:none;gap:6px;align-items:center;z-index:60;box-shadow:0 12px 30px -8px rgba(0,0,0,.4);white-space:nowrap}#selBar.on{display:flex}
+  #selBar span{font-size:13px;font-weight:600;margin-right:6px}#selBar button{font-family:inherit;background:rgba(255,255,255,.14);color:#fff;border:0;border-radius:999px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer}#selBar #selDel{background:#C2564A}
+  #moveOverlay{z-index:150}#moveOverlay .modal{max-width:340px}#moveSel{margin-bottom:4px}
+  .card .meta .body{font-size:12.5px;color:var(--ink-soft);line-height:1.5;margin-top:4px;white-space:pre-wrap;word-break:break-word;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+  .card .meta .name{word-break:break-word}.lb-info h3{word-break:break-word}
 </style></head><body>
-<header><div class="header-inner"><div class="header-actions"><div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input id="searchInput" placeholder="검색"></div><button class="btn-add" id="openAdd"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>추가</span></button></div></div></header>
+<header><div class="header-inner"><div class="header-actions"><div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input id="searchInput" placeholder="검색"></div><button class="btn-sel" id="selBtn">선택</button><button class="btn-add" id="openAdd"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>추가</span></button></div></div></header>
 <div class="cat-bar" id="catBar"></div>
 <main><div class="grid" id="grid"></div><div class="empty" id="emptyState" style="display:none"><div class="big">아직 저장한 메모가 없어요</div><div class="small">우측 상단 '추가' 버튼으로 시작해보세요</div></div></main>
 
 <div class="overlay" id="overlay"><div class="modal"><h2 id="mTitle">새 메모 추가</h2>
 <div class="drop" id="dropZone"><input type="file" id="fileInput" accept="image/*"><div class="drop-text"><b>클릭</b>, 끌어다 놓기, 또는 <b>붙여넣기</b>로 이미지 추가</div></div>
 <div class="preview-grid" id="previewGrid"></div>
-<label class="field-label">메모</label><textarea class="field" id="textInput" placeholder="무엇이든 적어두세요 · 영상 링크를 넣으면 썸네일이 떠요"></textarea>
+<label class="field-label">제목 (선택)</label><input class="field" id="titleInput" placeholder="비워두면 내용 첫 줄이 제목이 돼요" autocomplete="off"><label class="field-label">내용</label><textarea class="field" id="textInput" placeholder="무엇이든 적어두세요"></textarea><label class="field-label">링크 (선택)</label><input class="field" id="linkInput" placeholder="https://... 영상 링크면 썸네일이 떠요" autocomplete="off" inputmode="url">
 <label class="field-label">Category</label><div class="tag-select" id="catSelect"></div>
 <div id="addError" class="error-note"></div>
 <div class="modal-actions"><button class="btn-cancel" id="cancelAdd">취소</button><button class="btn-save" id="saveAdd" disabled>저장</button></div></div></div>
 
-<div class="lightbox" id="lightbox"><button class="lb-close" id="lbClose">✕</button><div class="lb-inner" id="lbInner"><div class="lb-img-wrap"><img id="lbImg" src="" alt=""></div><div class="lb-info"><div id="lbText"></div><div id="lbCats" class="lb-cats"></div><a class="lb-link-btn" id="lbLink" target="_blank" rel="noopener noreferrer">Open Link ↗</a><div class="lb-date" id="lbDate"></div><div class="lb-spacer"></div><div class="lb-btn-row"><button class="lb-edit" id="lbPin">고정</button><button class="lb-edit" id="lbEdit">수정하기</button><button class="lb-delete" id="lbDelete">삭제하기</button></div></div></div></div>
+<div class="lightbox" id="lightbox"><button class="lb-close" id="lbClose">✕</button><div class="lb-inner" id="lbInner"><div class="lb-img-wrap"><img id="lbImg" src="" alt=""></div><div class="lb-info"><h3 id="lbTitle"></h3><div id="lbText"></div><div id="lbCats" class="lb-cats"></div><a class="lb-link-btn" id="lbLink" target="_blank" rel="noopener noreferrer">Open Link ↗</a><div class="lb-date" id="lbDate"></div><div class="lb-spacer"></div><div class="lb-btn-row"><button class="lb-edit" id="lbPin">고정</button><button class="lb-edit" id="lbEdit">수정하기</button><button class="lb-delete" id="lbDelete">삭제하기</button></div></div></div></div>
 
+<div id="selBar"><span id="selCnt">0개 선택</span><button id="selAll">전체</button><button id="selMove">이동</button><button id="selDel">삭제</button></div>
+<div class="overlay" id="moveOverlay"><div class="modal"><h2>카테고리 이동</h2><div class="tag-select" id="moveSel"></div><div class="modal-actions"><button class="btn-cancel" id="mvCancel">취소</button></div></div></div>
 <div class="overlay" id="catOverlay"><div class="modal"><h2>새 카테고리</h2><input class="field" id="ncInput" placeholder="예: 맛집, 레퍼런스, 아이디어" maxlength="20" autocomplete="off"><div class="nc-prev" id="ncPrev"></div><div id="ncErr" class="error-note"></div><div class="modal-actions"><button class="btn-cancel" id="ncCancel">취소</button><button class="btn-save" id="ncSave">만들기</button></div></div></div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -106,14 +116,14 @@ const esc=s=>(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"
 const firstUrl=t=>(t.match(/https?:\/\/[^\s]+/)||[''])[0];
 const dom=u=>{try{return new URL(u).hostname.replace('www.','')}catch(e){return u}};
 const cols=()=>innerWidth>1100?4:innerWidth>760?3:2;
-let notes=[],cats=[],active=null,selCat='',file=null,editId=null,lbId=null,prevUrl='';
+let notes=[],cats=[],active=null,selCat='',file=null,editId=null,lbId=null,prevUrl='',selMode=false,picked=new Set(),shown=[];
 
 col.orderBy('ts','desc').onSnapshot(s=>{notes=[];s.docs.forEach(d=>d.id=='_cats'?cats=d.data().list||[]:notes.push({id:d.id,...d.data()}));if(active&&!cats.includes(active))active=null;catBar();render();if(!$('overlay').classList.contains('open'))selCats()});
 function saveCats(l){cats=l;col.doc('_cats').set({list:l,ts:0});catBar();render();selCats()}
-function newCat(){$('ncInput').value='';$('ncErr').style.display='none';ncPrev();$('catOverlay').classList.add('open');setTimeout(()=>$('ncInput').focus(),60)}
+let ncHook=null;function newCat(h){ncHook=h||null;$('ncInput').value='';$('ncErr').style.display='none';ncPrev();$('catOverlay').classList.add('open');setTimeout(()=>$('ncInput').focus(),60)}
 function ncPrev(){const v=$('ncInput').value.trim();$('ncPrev').innerHTML=v?`<span style="background:${colorOf(v)}20;color:${colorOf(v)}">${esc(v)}</span>`:'<em>이름을 입력하면 미리보기가 떠요</em>'}
-const closeNc=()=>$('catOverlay').classList.remove('open');
-function ncDone(){const n=$('ncInput').value.trim();if(!n)return;if(cats.includes(n)){$('ncErr').textContent='이미 있는 카테고리예요.';$('ncErr').style.display='block';return}selCat=n;closeNc();saveCats([...cats,n])}
+const closeNc=()=>{$('catOverlay').classList.remove('open');ncHook=null};
+function ncDone(){const n=$('ncInput').value.trim();if(!n)return;if(cats.includes(n)){$('ncErr').textContent='이미 있는 카테고리예요.';$('ncErr').style.display='block';return}const h=ncHook;selCat=n;closeNc();saveCats([...cats,n]);if(h)h(n)}
 $('ncInput').oninput=ncPrev;$('ncInput').onkeydown=e=>{if(e.key=='Enter'&&!e.isComposing)ncDone()};
 $('ncSave').onclick=ncDone;$('ncCancel').onclick=closeNc;$('catOverlay').onclick=e=>{if(e.target.id=='catOverlay')closeNc()};
 ['gesturestart','gesturechange'].forEach(t=>document.addEventListener(t,e=>e.preventDefault()));
@@ -126,16 +136,23 @@ $('catBar').onclick=e=>{const d=e.target.dataset,b=e.target.closest('.cat-chip')
   if(b.dataset.new){newCat();return}
   active=b.dataset.i===''?null:cats[b.dataset.i];catBar();render()};
 
+const linkOf=n=>n.link!==undefined?n.link:(n.url||firstUrl(n.text||''));
+const bodyOf=n=>{let b=n.text||'';if(n.link===undefined){const u=n.url||firstUrl(b);if(u)b=b.split(u).join('').trim()}return b};
+function parts(n){let b=bodyOf(n),t=(n.title||'').trim();if(!t){const i=b.indexOf('\n');t=(i<0?b:b.slice(0,i)).trim();b=i<0?'':b.slice(i+1).trim()}if(!t)t=dom(linkOf(n))||'제목 없음';return{t,b}}
 function card(n){
-  const el=document.createElement('div');el.className='card';const im=n.img||n.thumb,u=n.url||firstUrl(n.text);
+  const el=document.createElement('div');el.className='card';const im=n.img||n.thumb,u=linkOf(n),{t,b}=parts(n);
   let h=im?`<div class="img-wrap"><img src="${esc(im)}" loading="lazy">${n.vid?'<i class="play">▶</i>':''}${n.pin?'<span class="img-count">📌</span>':''}</div>`:'';
-  h+=`<div class="meta"><div class="name ${im?'':'txt'}">${esc(n.text)}</div>`;
+  h+=`<div class="meta"><div class="name">${esc(t)}</div>`;
+  if(b)h+=`<div class="body">${esc(b)}</div>`;
   if(u)h+=`<div class="link-tag">🔗 ${esc(dom(u))}</div>`;
   if(n.cat||(!im&&n.pin))h+=`<div class="cats">${!im&&n.pin?'<span style="background:#eee">📌</span>':''}${n.cat?`<span style="background:${colorOf(n.cat)}20;color:${colorOf(n.cat)}">${esc(n.cat)}</span>`:''}</div>`;
-  el.innerHTML=h+'</div>';el.onclick=()=>openLb(n);return el}
+  el.innerHTML=h+'</div>';
+  if(selMode){el.insertAdjacentHTML('afterbegin','<span class="chk"></span>');if(picked.has(n.id))el.classList.add('picked')}
+  el.onclick=()=>{if(!selMode)return openLb(n);picked.has(n.id)?picked.delete(n.id):picked.add(n.id);el.classList.toggle('picked');updateBar()};return el}
 function render(){
   const q=$('searchInput').value.trim().toLowerCase();
-  const l=notes.filter(n=>(!active||n.cat==active)&&n.text.toLowerCase().includes(q)).sort((a,b)=>(b.pin||0)-(a.pin||0));
+  const l=notes.filter(n=>(!active||n.cat==active)&&`${n.title||''} ${n.text||''} ${linkOf(n)}`.toLowerCase().includes(q)).sort((a,b)=>(b.pin||0)-(a.pin||0));
+  shown=l;const ids=new Set(l.map(n=>n.id));picked.forEach(id=>ids.has(id)||picked.delete(id));updateBar();
   const g=$('grid');g.innerHTML='';$('emptyState').style.display=l.length?'none':'block';
   const k=cols(),cs=[];for(let i=0;i<k;i++){const c=document.createElement('div');c.className='grid-col';cs.push(c);g.appendChild(c)}
   l.forEach((n,i)=>cs[i%k].appendChild(card(n)))}
@@ -150,17 +167,17 @@ function preview(){
   if(prevUrl)URL.revokeObjectURL(prevUrl);prevUrl=file?URL.createObjectURL(file):'';
   $('previewGrid').innerHTML=file?`<div class="preview-item"><img src="${prevUrl}"><button class="remove" id="rmF">✕</button></div>`:'';
   if(file)$('rmF').onclick=()=>setFile(null)}
-const ok=()=>{$('saveAdd').disabled=!($('textInput').value.trim()||file)};
+const ok=()=>{$('saveAdd').disabled=!($('titleInput').value.trim()||$('textInput').value.trim()||$('linkInput').value.trim()||file)};
 function setFile(f){file=f;preview();ok()}
 function openAdd(n){
   editId=n?n.id:null;file=null;preview();$('fileInput').value='';
   $('mTitle').textContent=n?'메모 수정':'새 메모 추가';$('dropZone').style.display=n?'none':'';
-  $('textInput').value=n?n.text:'';selCat=n?(n.cat||''):(active||'');selCats();ok();
+  $('titleInput').value=n?(n.title||''):'';$('textInput').value=n?bodyOf(n):'';$('linkInput').value=n?linkOf(n):'';selCat=n?(n.cat||''):(active||'');selCats();ok();
   $('addError').style.display='none';$('overlay').classList.add('open');$('textInput').focus()}
 const closeAdd=()=>$('overlay').classList.remove('open');
 $('openAdd').onclick=()=>openAdd();$('cancelAdd').onclick=closeAdd;
 $('overlay').onclick=e=>{if(e.target.id=='overlay')closeAdd()};
-$('textInput').oninput=ok;
+$('textInput').oninput=$('titleInput').oninput=$('linkInput').oninput=ok;
 $('textInput').onkeydown=e=>{if((e.ctrlKey||e.metaKey)&&e.key=='Enter'&&!$('saveAdd').disabled)save()};
 $('dropZone').onclick=()=>$('fileInput').click();
 $('fileInput').onchange=e=>e.target.files[0]&&setFile(e.target.files[0]);
@@ -177,16 +194,20 @@ async function thumb(text){
     if(i)return{url:u,thumb:i,vid:/vimeo|tiktok|instagram|twitch|dailymotion|tv\.naver|chzzk|x\.com|twitter/.test(u)?1:0}}catch(e){}
   return{}}
 async function save(){
-  const text=$('textInput').value.trim(),b=$('saveAdd');b.disabled=true;b.textContent='저장 중...';
+  const title=$('titleInput').value.trim(),text=$('textInput').value.trim(),b=$('saveAdd');let link=$('linkInput').value.trim();
+  if(link&&!/^https?:\/\//i.test(link))link='https://'+link;
+  b.disabled=true;b.textContent='저장 중...';
   try{
-    if(editId)await col.doc(editId).update({text,cat:selCat});
+    if(editId){const old=notes.find(x=>x.id==editId),d={title,text,link,cat:selCat};
+      if(link!==linkOf(old)&&!old.img){const th=await thumb(link);d.thumb=th.thumb||'';d.vid=th.vid||0}
+      await col.doc(editId).update(d)}
     else{let img='',th={};
       if(file){const fd=new FormData();fd.append('file',file);fd.append('upload_preset',PRESET);
         const j=await(await fetch(`https://api.cloudinary.com/v1_1/${CLOUD}/image/upload`,{method:'POST',body:fd})).json();
         if(!j.secure_url)throw new Error(j.error&&j.error.message);
         img=j.secure_url.replace('/upload/','/upload/f_auto,q_auto,w_1000/')}
-      else th=await thumb(text);
-      await col.add({text,img,...th,cat:selCat,pin:0,ts:Date.now()})}
+      else th=await thumb(link);
+      await col.add({title,text,link,img,...th,cat:selCat,pin:0,ts:Date.now()})}
     closeAdd()
   }catch(e){const x=$('addError');x.textContent='저장 실패: '+e.message;x.style.display='block'}
   b.textContent='저장';ok()}
@@ -194,18 +215,33 @@ $('saveAdd').onclick=save;
 
 /* lightbox */
 function openLb(n){
-  lbId=n.id;const im=n.img||n.thumb,u=n.url||firstUrl(n.text);
+  lbId=n.id;const im=n.img||n.thumb,u=linkOf(n),{t,b}=parts(n);
   $('lbInner').classList.toggle('noimg',!im);if(im)$('lbImg').src=im;
-  $('lbText').innerHTML=esc(n.text).replace(/(https?:\/\/[^\s]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>');
+  $('lbTitle').textContent=t;$('lbText').style.display=b?'block':'none';$('lbText').innerHTML=esc(b).replace(/(https?:\/\/[^\s]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>');
   $('lbCats').innerHTML=n.cat?`<span style="background:${colorOf(n.cat)}">${esc(n.cat)}</span>`:'';
   $('lbLink').style.display=u?'inline-flex':'none';if(u)$('lbLink').href=u;
   $('lbDate').style.display=n.ts?'block':'none';if(n.ts)$('lbDate').textContent=new Date(n.ts).toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'});
   $('lbPin').textContent=n.pin?'고정 해제':'고정';$('lightbox').classList.add('open')}
 const closeLb=()=>$('lightbox').classList.remove('open');
 $('lbClose').onclick=closeLb;$('lightbox').onclick=e=>{if(e.target.id=='lightbox')closeLb()};
-addEventListener('keydown',e=>{if(e.key=='Escape'){closeLb();closeNc();closeAdd()}});
+addEventListener('keydown',e=>{if(e.key=='Escape'){closeLb();closeNc();closeAdd();closeMv()}});
 $('lbPin').onclick=()=>{const n=notes.find(x=>x.id==lbId);col.doc(lbId).update({pin:n.pin?0:1});closeLb()};
 $('lbEdit').onclick=()=>{const n=notes.find(x=>x.id==lbId);closeLb();openAdd(n)};
 $('lbDelete').onclick=()=>{if(confirm('삭제할까요?')){col.doc(lbId).delete();closeLb()}};
+
+/* multi-select */
+function updateBar(){$('selCnt').textContent=picked.size+'개 선택'}
+function setSel(on){selMode=on;picked.clear();$('selBtn').textContent=on?'완료':'선택';$('selBar').classList.toggle('on',on);render()}
+$('selBtn').onclick=()=>setSel(!selMode);
+$('selAll').onclick=()=>{if(picked.size==shown.length)picked.clear();else shown.forEach(n=>picked.add(n.id));render()};
+$('selDel').onclick=async()=>{if(!picked.size||!confirm(`${picked.size}개 메모를 삭제할까요?`))return;
+  try{const b=col.firestore.batch();picked.forEach(id=>b.delete(col.doc(id)));await b.commit();setSel(false)}catch(e){alert('삭제 실패: '+e.message)}};
+const closeMv=()=>$('moveOverlay').classList.remove('open');
+$('selMove').onclick=()=>{if(!picked.size)return;
+  $('moveSel').innerHTML=['',...cats].map(c=>`<button type="button" class="tag" data-c="${esc(c)}" ${c?`style="color:${colorOf(c)}"`:''}>${c?esc(c):'미분류'}</button>`).join('')+'<button type="button" class="tag new" data-new="1">＋ 새로</button>';
+  $('moveOverlay').classList.add('open')};
+async function moveTo(c){try{const b=col.firestore.batch();picked.forEach(id=>b.update(col.doc(id),{cat:c}));await b.commit();closeMv();setSel(false)}catch(e){alert('이동 실패: '+e.message)}}
+$('moveSel').onclick=e=>{const t=e.target.closest('.tag');if(!t)return;if(t.dataset.new){closeMv();newCat(n=>moveTo(n));return}moveTo(t.dataset.c)};
+$('mvCancel').onclick=closeMv;$('moveOverlay').onclick=e=>{if(e.target.id=='moveOverlay')closeMv()};
 catBar();selCats();
 </script></body></html>
